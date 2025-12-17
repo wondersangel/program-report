@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>活動報告生成器 V10.1</title>
+    <title>活動報告生成器 V10.2</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
@@ -86,8 +86,8 @@
 <div class="container py-4 no-print">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h3 class="text-primary fw-bold mb-0">🏥 活動報告生成器 V10.1</h3>
-            <small class="text-muted">已修正選項名稱 (非常同意/非常不同意)</small>
+            <h3 class="text-primary fw-bold mb-0">🏥 活動報告生成器 V10.2</h3>
+            <small class="text-muted">已隱藏 0% 的圖表標籤</small>
         </div>
         <div class="text-end">
             <button class="btn btn-outline-primary me-2" onclick="saveProject()">💾 儲存專案 (.json)</button>
@@ -659,7 +659,6 @@
         const chartsArea = document.getElementById('outChartsArea');
         chartsArea.innerHTML = '';
         const qCards = document.querySelectorAll('#questionsContainer .dynamic-card');
-        // Updated Labels V10.1
         const labels = ['非常同意', '同意', '一般', '不同意', '非常不同意'];
         const colors = ['#198754', '#20c997', '#ffc107', '#fd7e14', '#dc3545'];
 
@@ -703,7 +702,7 @@
                 </div>`;
             chartsArea.appendChild(wrapper);
 
-            // 2D Chart V10.0 (Compact Height)
+            // V10.2: Smart Labels (Hide 0 count)
             Highcharts.chart(chartId, {
                 chart: { type: 'pie', backgroundColor: null, animation: false },
                 title: { text: null },
@@ -712,8 +711,14 @@
                         innerSize: 50,
                         dataLabels: {
                             enabled: true,
-                            distance: 5, // Tighter labels
-                            formatter: function() { return `<b>${this.point.name}</b>:<br>${this.y}人 (${this.percentage.toFixed(1)}%)`; },
+                            distance: 5, 
+                            formatter: function() { 
+                                // NEW LOGIC: Only show label if y > 0
+                                if(this.y > 0) {
+                                    return `<b>${this.point.name}</b>:<br>${this.y}人 (${this.percentage.toFixed(1)}%)`;
+                                }
+                                return null;
+                            },
                             style: { fontSize: '9px', color: 'black', textOutline: 'none' },
                             connectorPadding: 2
                         },
