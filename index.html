@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>活動報告生成器 V9.6</title>
+    <title>活動報告生成器 V9.7</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
@@ -31,12 +31,10 @@
         /* Report Output Styles */
         .report-section { display: none; background: white; padding: 50px; margin-top: 20px; border: 1px solid #ddd; }
         
-        /* Chart Layout - 2D Optimized */
+        /* Chart Layout */
         .chart-row { display: flex; align-items: center; page-break-inside: avoid; margin-bottom: 30px; border-bottom: 1px dashed #eee; padding-bottom: 20px; }
         .chart-col { width: 60%; }
         .table-col { width: 40%; padding-left: 20px; }
-        
-        /* Chart container height */
         .chart-container { height: 300px; width: 100%; }
         
         /* Stats Table */
@@ -69,8 +67,6 @@
             .no-print { display: none !important; }
             .page-break { page-break-before: always; }
             .bg-light { background-color: #f8f9fa !important; -webkit-print-color-adjust: exact; }
-            
-            /* Enforce chart width in print */
             .chart-col { min-width: 350px; }
         }
     </style>
@@ -80,8 +76,8 @@
 <div class="container py-4 no-print">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h3 class="text-primary fw-bold mb-0">🏥 活動報告生成器 V9.6</h3>
-            <small class="text-muted">已移除圖表底部圖例</small>
+            <h3 class="text-primary fw-bold mb-0">🏥 活動報告生成器 V9.7</h3>
+            <small class="text-muted">已新增出席人數細項 (病人/照顧者/義工/其他)</small>
         </div>
         <div class="text-end">
             <button class="btn btn-outline-primary me-2" onclick="saveProject()">💾 儲存專案 (.json)</button>
@@ -139,8 +135,37 @@
                 <div class="col-md-6"><label class="form-label">活動名稱</label><input type="text" id="actName" class="form-control"></div>
                 <div class="col-md-6"><label class="form-label">訪問對象</label><input type="text" id="target" class="form-control"></div>
                 <div class="col-md-4"><label class="form-label">訪問日期</label><input type="date" id="date" class="form-control"></div>
-                <div class="col-md-4"><label class="form-label">出席人數</label><input type="number" id="attendees" class="form-control"></div>
-                <div class="col-md-4"><label class="form-label">收回有效問卷</label><input type="number" id="validQ" class="form-control bg-light" readonly></div>
+                
+                <div class="col-md-4">
+                    <label class="form-label">收回有效問卷</label>
+                    <input type="number" id="validQ" class="form-control bg-light" readonly>
+                </div>
+                <div class="col-md-4">
+                    </div>
+
+                <div class="col-12">
+                    <div class="p-3 bg-light border rounded">
+                        <label class="form-label fw-bold text-primary mb-2">👥 出席人數細項 (輸入後自動計算總數)</label>
+                        <div class="row g-2">
+                            <div class="col-md-3">
+                                <label class="small text-muted">病人</label>
+                                <input type="number" id="attPatients" class="form-control" placeholder="0">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="small text-muted">照顧者</label>
+                                <input type="number" id="attCarers" class="form-control" placeholder="0">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="small text-muted">義工</label>
+                                <input type="number" id="attVolunteers" class="form-control" placeholder="0">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="small text-muted">其他</label>
+                                <input type="number" id="attOthers" class="form-control" placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 
                 <div class="col-12"><hr class="my-2"></div>
                 <div class="col-md-12">
@@ -317,14 +342,9 @@
     let finExpCounter = 0;
     let uploadedImages = [];
 
-    // Title Management for Printing
     const originalTitle = document.title;
-    window.onbeforeprint = function() {
-        document.title = "活動報告"; 
-    };
-    window.onafterprint = function() {
-        document.title = originalTitle; 
-    };
+    window.onbeforeprint = function() { document.title = "活動報告"; };
+    window.onafterprint = function() { document.title = originalTitle; };
 
     // Init
     window.onload = function() {
@@ -463,7 +483,11 @@
             actName: document.getElementById('actName').value,
             target: document.getElementById('target').value,
             date: document.getElementById('date').value,
-            attendees: document.getElementById('attendees').value,
+            // Attendees Breakdown
+            attPatients: document.getElementById('attPatients').value,
+            attCarers: document.getElementById('attCarers').value,
+            attVolunteers: document.getElementById('attVolunteers').value,
+            attOthers: document.getElementById('attOthers').value,
             validQ: document.getElementById('validQ').value,
             goals: [document.getElementById('goal1').value, document.getElementById('goal2').value, document.getElementById('goal3').value],
             conclusion: document.getElementById('conclusionText').value,
@@ -518,7 +542,12 @@
                 document.getElementById('actName').value = data.actName;
                 document.getElementById('target').value = data.target;
                 document.getElementById('date').value = data.date;
-                document.getElementById('attendees').value = data.attendees;
+                // Attendees
+                document.getElementById('attPatients').value = data.attPatients || "";
+                document.getElementById('attCarers').value = data.attCarers || "";
+                document.getElementById('attVolunteers').value = data.attVolunteers || "";
+                document.getElementById('attOthers').value = data.attOthers || "";
+                
                 document.getElementById('validQ').value = data.validQ;
                 document.getElementById('goal1').value = data.goals[0];
                 document.getElementById('goal2').value = data.goals[1];
@@ -598,7 +627,22 @@
         document.getElementById('outTitle').innerText = document.getElementById('actName').value + " - 活動報告";
         document.getElementById('outTarget').innerText = document.getElementById('target').value;
         document.getElementById('outDate').innerText = document.getElementById('date').value;
-        document.getElementById('outAttendees').innerText = document.getElementById('attendees').value;
+        
+        // Attendees Calc
+        const p = parseInt(document.getElementById('attPatients').value) || 0;
+        const c = parseInt(document.getElementById('attCarers').value) || 0;
+        const v = parseInt(document.getElementById('attVolunteers').value) || 0;
+        const o = parseInt(document.getElementById('attOthers').value) || 0;
+        const totalAtt = p + c + v + o;
+        
+        const attHtml = `
+            <div class="fw-bold fs-5">${totalAtt}</div>
+            <div class="small text-muted" style="line-height:1.2; margin-top:4px;">
+                (病人: ${p}, 照顧者: ${c},<br>義工: ${v}, 其他: ${o})
+            </div>
+        `;
+        document.getElementById('outAttendees').innerHTML = attHtml;
+
         document.getElementById('outValidQ').innerText = document.getElementById('validQ').value;
         document.getElementById('outConclusion').innerText = document.getElementById('conclusionText').value;
 
@@ -670,13 +714,10 @@
                             style: { fontSize: '10px', color: 'black', textOutline: 'none' },
                             connectorPadding: 5
                         },
-                        showInLegend: true // Keep this true so they *could* show in legend
+                        showInLegend: true 
                     }
                 },
-                // UPDATED: Legend Disabled completely
-                legend: { 
-                    enabled: false 
-                },
+                legend: { enabled: false },
                 series: [{ name: '人數', data: data.map((y, i) => ({ name: labels[i], y: y, color: colors[i] })) }],
                 credits: { enabled: false }
             });
