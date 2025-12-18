@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>活動報告生成器 V12.0</title>
+    <title>活動報告生成器 V13.0</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
@@ -24,6 +24,7 @@
         
         .dynamic-card { border-left: 4px solid #0d6efd; background: #fff; padding: 15px; margin-bottom: 10px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .manual-inputs { display: none; background: #f8f9fa; padding: 10px; border-radius: 5px; margin-top: 10px; }
+        .custom-option-row { display: flex; gap: 5px; margin-bottom: 5px; }
 
         /* Report Output */
         .report-section { display: none; background: white; padding: 50px; margin-top: 20px; border: 1px solid #ddd; }
@@ -67,8 +68,8 @@
 <div class="container py-4 no-print">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h3 class="text-primary fw-bold mb-0">🏥 活動報告生成器 V12.0</h3>
-            <small class="text-muted">萬能圖表版：自動識別任何類型的選擇題</small>
+            <h3 class="text-primary fw-bold mb-0">🏥 活動報告生成器 V13.0</h3>
+            <small class="text-muted">終極版：支援完全自訂選項 (適合複雜多選題)</small>
         </div>
         <div class="text-end">
             <button class="btn btn-outline-primary me-2" onclick="saveProject()">💾 儲存專案</button>
@@ -80,7 +81,7 @@
     <div class="alert alert-warning border-warning d-flex align-items-center" role="alert">
         <span class="fs-4 me-2">💡</span>
         <div>
-            <strong>提示：</strong> 上載 Excel 後，程式會自動分析每一題的答案種類（例如：是/否、滿意度、或其他選項），並自動生成對應的圓形圖。
+            <strong>提示：</strong> 對於複雜的題目（如多選），請在題目來源選擇 <strong>「✍️ 手動輸入 (自訂選項)」</strong>，然後自由新增選項及人數。
         </div>
     </div>
 
@@ -268,6 +269,7 @@
     window.onbeforeprint = function() { document.title = "活動報告"; };
     window.onafterprint = function() { document.title = originalTitle; };
 
+    // Init
     window.onload = function() {
         addQuestionRow();
         addTextSection("第二部分：受訪者對活動內容的建議");
@@ -276,14 +278,12 @@
         addFinanceRow('expense');
     };
 
-    // --- 1. Excel Handling (Multi-file + Header Offset) ---
+    // --- Excel Handling ---
     async function handleExcelUpload(input) {
         const files = input.files;
         if (!files.length) return;
-        
         document.getElementById('fileInfo').innerText = `正在處理 ${files.length} 個檔案...`;
         document.querySelector('.upload-zone').classList.add('active');
-        
         const headerIndex = parseInt(document.getElementById('headerRowIndex').value) || 1;
         const range = headerIndex - 1;
 
@@ -311,14 +311,9 @@
                 excelHeaders = Object.keys(excelData[0]).filter(k => k !== 'Timestamp' && k !== '時間戳記' && k !== '__EMPTY');
                 document.getElementById('validQ').value = excelData.length;
                 updateAllDropdowns();
-                // Guess Date
-                excelHeaders.forEach(h => { 
-                    if(h.includes("日期")) { try { document.getElementById('date').value = new Date(excelData[0][h]).toISOString().split('T')[0]; } catch(e){} }
-                });
+                excelHeaders.forEach(h => { if(h.includes("日期")) try { document.getElementById('date').value = new Date(excelData[0][h]).toISOString().split('T')[0]; } catch(e){} });
                 alert(`✅ 成功合併 ${files.length} 個檔案，共 ${excelData.length} 筆數據`);
-            } else {
-                alert("⚠️ 讀取失敗，請檢查標題行數設定");
-            }
+            } else { alert("⚠️ 讀取失敗，請檢查標題行數設定"); }
         } catch (err) { console.error(err); alert("檔案格式錯誤"); }
     }
 
@@ -326,7 +321,8 @@
         const selectors = document.querySelectorAll('.excel-column-selector');
         selectors.forEach(sel => {
             const currentVal = sel.value;
-            sel.innerHTML = '<option value="">-- 選 Excel 欄位 --</option><option value="MANUAL_INPUT">✍️ 手動輸入 (5分制)</option>';
+            // V13 Update: Added Custom Manual Option
+            sel.innerHTML = '<option value="">-- 選 Excel 欄位 --</option><option value="MANUAL_INPUT">✍️ 手動輸入 (5分制)</option><option value="CUSTOM_MANUAL">✍️ 手動輸入 (自訂選項)</option>';
             excelHeaders.forEach(h => {
                 const opt = document.createElement('option');
                 opt.value = h; opt.text = h; sel.appendChild(opt);
@@ -335,30 +331,64 @@
         });
     }
 
-    // --- 2. Dynamic DOM ---
+    // --- Dynamic DOM ---
     function addQuestionRow() {
         questionCounter++;
         const div = document.createElement('div');
         div.className = 'dynamic-card';
         div.id = `q-card-${questionCounter}`;
+        // V13: Updated HTML for Custom Manual
         div.innerHTML = `
             <div class="d-flex justify-content-between mb-2">
                 <span class="fw-bold text-primary">Q${questionCounter}</span>
                 <button class="btn btn-sm text-danger border-0 p-0" onclick="this.parentElement.parentElement.remove()">✕</button>
             </div>
             <input type="text" class="form-control form-control-sm mb-2 q-title" placeholder="輸入問題標題">
-            <select class="form-select form-select-sm excel-column-selector question-source mb-2" onchange="toggleManualInput(this, 'manual-inputs-${questionCounter}')">
-                <option value="">-- 選 Excel 欄位 --</option><option value="MANUAL_INPUT">✍️ 手動輸入 (5分制)</option>
+            <select class="form-select form-select-sm excel-column-selector question-source mb-2" onchange="toggleManualInput(this, ${questionCounter})">
+                <option value="">-- 選 Excel 欄位 --</option><option value="MANUAL_INPUT">✍️ 手動輸入 (5分制)</option><option value="CUSTOM_MANUAL">✍️ 手動輸入 (自訂選項)</option>
             </select>
+            
             <div id="manual-inputs-${questionCounter}" class="manual-inputs row g-1">
                 <div class="col"><input type="number" class="form-control form-control-sm q-val" placeholder="非常同意"></div>
                 <div class="col"><input type="number" class="form-control form-control-sm q-val" placeholder="同意"></div>
                 <div class="col"><input type="number" class="form-control form-control-sm q-val" placeholder="一般"></div>
                 <div class="col"><input type="number" class="form-control form-control-sm q-val" placeholder="不同意"></div>
                 <div class="col"><input type="number" class="form-control form-control-sm q-val" placeholder="非常不同意"></div>
-            </div>`;
+            </div>
+
+            <div id="custom-inputs-${questionCounter}" class="manual-inputs">
+                <div class="custom-options-container"></div>
+                <button class="btn btn-sm btn-outline-secondary mt-2" onclick="addCustomOption(${questionCounter})">+ 新增選項</button>
+            </div>
+        `;
         document.getElementById('questionsContainer').appendChild(div);
         if(excelHeaders.length>0) updateAllDropdowns();
+    }
+
+    function addCustomOption(qId) {
+        const container = document.querySelector(`#custom-inputs-${qId} .custom-options-container`);
+        const row = document.createElement('div');
+        row.className = 'custom-option-row';
+        row.innerHTML = `
+            <input type="text" class="form-control form-control-sm cust-opt-label" placeholder="選項名稱">
+            <input type="number" class="form-control form-control-sm cust-opt-val" placeholder="人數" style="width: 80px;">
+            <button class="btn btn-sm btn-outline-danger" onclick="this.parentElement.remove()">✕</button>
+        `;
+        container.appendChild(row);
+    }
+
+    function toggleManualInput(sel, id) {
+        const manualDiv = document.getElementById(`manual-inputs-${id}`);
+        const customDiv = document.getElementById(`custom-inputs-${id}`);
+        
+        manualDiv.style.display = sel.value === 'MANUAL_INPUT' ? 'flex' : 'none';
+        customDiv.style.display = sel.value === 'CUSTOM_MANUAL' ? 'block' : 'none';
+        
+        if(sel.value && !sel.value.includes('MANUAL')) {
+            const row = sel.closest('.dynamic-card');
+            const ti = row.querySelector('.q-title');
+            if(ti && !ti.value) ti.value = sel.value;
+        }
     }
 
     function addTextSection(title="") {
@@ -370,7 +400,7 @@
                 <input type="text" class="form-control form-control-sm me-2 text-title fw-bold" value="${title}" placeholder="標題">
                 <button class="btn btn-sm text-danger border-0 p-0" onclick="this.parentElement.parentElement.remove()">✕</button>
             </div>
-            <select class="form-select form-select-sm excel-column-selector text-source mb-2" onchange="toggleManualInput(this, 'manual-text-${textSectionCounter}')">
+            <select class="form-select form-select-sm excel-column-selector text-source mb-2" onchange="toggleTextManual(this, 'manual-text-${textSectionCounter}')">
                 <option value="">-- 選 Excel 欄位 --</option><option value="MANUAL_INPUT">✍️ 手動輸入</option>
             </select>
             <div id="manual-text-${textSectionCounter}" class="manual-inputs">
@@ -380,21 +410,15 @@
         if(excelHeaders.length>0) updateAllDropdowns();
     }
 
+    function toggleTextManual(sel, id) {
+        document.getElementById(id).style.display = sel.value === 'MANUAL_INPUT' ? 'block' : 'none';
+    }
+
     function addFinanceRow(type) {
         const div = document.createElement('div');
         div.className = 'input-group input-group-sm mb-1';
-        const html = `<input type="text" class="form-control fin-item-${type === 'income' ? 'inc' : 'exp'}" placeholder="項目"><input type="number" class="form-control fin-amount-${type === 'income' ? 'inc' : 'exp'}" placeholder="$"><button class="btn btn-outline-secondary" onclick="this.parentElement.remove()">✕</button>`;
-        div.innerHTML = html;
+        div.innerHTML = `<input type="text" class="form-control fin-item-${type === 'income' ? 'inc' : 'exp'}" placeholder="項目"><input type="number" class="form-control fin-amount-${type === 'income' ? 'inc' : 'exp'}" placeholder="$"><button class="btn btn-outline-secondary" onclick="this.parentElement.remove()">✕</button>`;
         document.getElementById(type === 'income' ? 'incomeContainer' : 'expenseContainer').appendChild(div);
-    }
-
-    function toggleManualInput(sel, id) {
-        document.getElementById(id).style.display = sel.value === 'MANUAL_INPUT' ? 'block' : 'none';
-        if(sel.value && sel.value !== 'MANUAL_INPUT') {
-            const row = sel.closest('.dynamic-card');
-            const ti = row.querySelector('.q-title') || row.querySelector('.text-title');
-            if(ti && !ti.value) ti.value = sel.value;
-        }
     }
 
     function previewPhotos() {
@@ -414,7 +438,7 @@
         }
     }
 
-    // --- Save/Load (Standard V11) ---
+    // --- SAVE / LOAD ---
     function saveProject() {
         const data = {
             header: document.getElementById('hospitalHeader').value,
@@ -432,11 +456,28 @@
             questions: [], textSections: [], finIncome: [], finExpense: [],
             excelData: excelData, images: uploadedImages
         };
-        // Save Question & Text logic similar to V9
-        document.querySelectorAll('#questionsContainer .dynamic-card').forEach(card => {
-            const inputs = card.querySelectorAll('.q-val');
-            data.questions.push({ title: card.querySelector('.q-title').value, source: card.querySelector('.question-source').value, manualData: Array.from(inputs).map(i => i.value) });
+
+        document.querySelectorAll('#questionsContainer .dynamic-card').forEach((card, idx) => {
+            let manualData = [], customData = [];
+            const source = card.querySelector('.question-source').value;
+            
+            if(source === 'MANUAL_INPUT') {
+                const inputs = card.querySelectorAll(`#manual-inputs-${idx+1} .q-val`);
+                manualData = Array.from(inputs).map(i => i.value);
+            } else if (source === 'CUSTOM_MANUAL') {
+                const rows = card.querySelectorAll('.custom-option-row');
+                rows.forEach(r => customData.push({ label: r.querySelector('.cust-opt-label').value, val: r.querySelector('.cust-opt-val').value }));
+            }
+
+            data.questions.push({
+                title: card.querySelector('.q-title').value,
+                source: source,
+                manualData: manualData,
+                customData: customData
+            });
         });
+
+        // (Save Texts, Finance same as before)
         document.querySelectorAll('#textSectionsContainer .dynamic-card').forEach(card => {
             data.textSections.push({ title: card.querySelector('.text-title').value, source: card.querySelector('.text-source').value, manualVal: card.querySelector('.text-manual-val').value });
         });
@@ -444,10 +485,7 @@
         document.querySelectorAll('#expenseContainer .input-group').forEach(r => data.finExpense.push({ item: r.querySelector('.fin-item-exp').value, amount: r.querySelector('.fin-amount-exp').value }));
 
         const blob = new Blob([JSON.stringify(data)], {type: "application/json"});
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `Project_${data.actName}.json`;
-        a.click();
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `Project.json`; a.click();
     }
 
     function loadProject(input) {
@@ -457,69 +495,96 @@
         reader.onload = function(e) {
             try {
                 const data = JSON.parse(e.target.result);
-                // Restore logic (Abbreviated for brevity, essentially maps JSON back to UI)
+                // Restore basic fields (same as V12)
                 document.getElementById('hospitalHeader').value = data.header;
                 document.getElementById('serviceUnit').value = data.unit;
                 document.getElementById('actName').value = data.actName;
                 document.getElementById('target').value = data.target;
                 document.getElementById('date').value = data.date;
-                document.getElementById('attPatients').value = data.attPatients;
-                document.getElementById('attCarers').value = data.attCarers;
-                document.getElementById('attVolunteers').value = data.attVolunteers;
-                document.getElementById('attOthers').value = data.attOthers;
+                document.getElementById('attPatients').value = data.attPatients || "";
+                document.getElementById('attCarers').value = data.attCarers || "";
+                document.getElementById('attVolunteers').value = data.attVolunteers || "";
+                document.getElementById('attOthers').value = data.attOthers || "";
                 document.getElementById('validQ').value = data.validQ;
                 document.getElementById('goal1').value = data.goals[0];
                 document.getElementById('goal2').value = data.goals[1];
                 document.getElementById('goal3').value = data.goals[2];
                 document.getElementById('conclusionText').value = data.conclusion;
-                if(data.excelData) { excelData = data.excelData; excelHeaders = Object.keys(excelData[0]).filter(k=>k!=='Timestamp'); document.getElementById('fileInfo').innerText = "已恢復數據"; }
+                if(data.excelData) { excelData = data.excelData; excelHeaders = Object.keys(excelData[0]).filter(k=>k!=='Timestamp'); }
                 
-                // Rebuild Dynamic Rows
+                // Restore Questions (V13 Logic)
                 document.getElementById('questionsContainer').innerHTML = '';
                 questionCounter = 0;
-                data.questions.forEach(q => { addQuestionRow(); /* ... Populate values ... */ 
+                data.questions.forEach(q => {
+                    addQuestionRow();
                     const card = document.getElementById(`q-card-${questionCounter}`);
                     card.querySelector('.q-title').value = q.title;
                     const sel = card.querySelector('.question-source');
+                    sel.innerHTML = '<option value="">-- 選 Excel 欄位 --</option><option value="MANUAL_INPUT">✍️ 手動輸入 (5分制)</option><option value="CUSTOM_MANUAL">✍️ 手動輸入 (自訂選項)</option>';
                     excelHeaders.forEach(h => { const opt = document.createElement('option'); opt.value = h; opt.text = h; sel.appendChild(opt); });
                     sel.value = q.source;
-                    toggleManualInput(sel, `manual-inputs-${questionCounter}`);
-                    // Note: Manual values only restored if mode is manual
+                    toggleManualInput(sel, questionCounter); // Pass ID
+                    
                     if(q.source === 'MANUAL_INPUT') {
                         const inputs = card.querySelectorAll('.q-val');
                         q.manualData.forEach((v, i) => inputs[i].value = v);
+                    } else if (q.source === 'CUSTOM_MANUAL' && q.customData) {
+                        q.customData.forEach(opt => {
+                            addCustomOption(questionCounter);
+                            const rows = card.querySelectorAll('.custom-option-row');
+                            const lastRow = rows[rows.length-1];
+                            lastRow.querySelector('.cust-opt-label').value = opt.label;
+                            lastRow.querySelector('.cust-opt-val').value = opt.val;
+                        });
                     }
                 });
+
+                // Restore others (Text, Finance, Photos) - Same as V12
+                document.getElementById('textSectionsContainer').innerHTML = '';
+                textSectionCounter = 0;
+                data.textSections.forEach(t => { addTextSection(t.title); /* ... restore logic ... */ 
+                    const cards = document.querySelectorAll('#textSectionsContainer .dynamic-card');
+                    const card = cards[cards.length-1];
+                    const sel = card.querySelector('.text-source');
+                    sel.innerHTML = '<option value="">-- 選 Excel 欄位 --</option><option value="MANUAL_INPUT">✍️ 手動輸入</option>';
+                    excelHeaders.forEach(h => { const opt = document.createElement('option'); opt.value = h; opt.text = h; sel.appendChild(opt); });
+                    sel.value = t.source;
+                    toggleTextManual(sel, card.querySelector('.manual-inputs').id);
+                    card.querySelector('.text-manual-val').value = t.manualVal;
+                });
+
+                document.getElementById('incomeContainer').innerHTML = '';
+                document.getElementById('expenseContainer').innerHTML = '';
+                data.finIncome.forEach(f => { addFinanceRow('income'); const r = document.querySelectorAll('#incomeContainer .input-group'); r[r.length-1].querySelector('input[type=text]').value = f.item; r[r.length-1].querySelector('input[type=number]').value = f.amount; });
+                data.finExpense.forEach(f => { addFinanceRow('expense'); const r = document.querySelectorAll('#expenseContainer .input-group'); r[r.length-1].querySelector('input[type=text]').value = f.item; r[r.length-1].querySelector('input[type=number]').value = f.amount; });
                 
-                // Rebuild Text, Finance, Photos similarly...
                 uploadedImages = data.images || [];
-                alert("✅ 專案讀取成功 (部分細節請檢查)");
-            } catch(err) { alert("檔案讀取錯誤"); }
+                const pDiv = document.getElementById('inputPhotoPreview'); pDiv.innerHTML = ''; uploadedImages.forEach(s => pDiv.innerHTML += `<img src="${s}" class="photo-preview">`);
+
+                alert("✅ 專案讀取成功");
+            } catch(e) { console.error(e); alert("讀取錯誤"); }
         };
         reader.readAsText(file);
     }
 
-    // --- 3. GENERATE REPORT (V12.0 LOGIC) ---
+    // --- Generate Report ---
     function generateReport() {
-        // ... (Basic Info Mapping) ...
+        // ... (Basic Info Mapping same as V9.9) ...
         document.getElementById('outHeader').innerText = document.getElementById('hospitalHeader').value;
         document.getElementById('outUnit').innerText = document.getElementById('serviceUnit').value;
         document.getElementById('outTitle').innerText = document.getElementById('actName').value + " - 活動報告";
         document.getElementById('outTarget').innerText = document.getElementById('target').value;
         document.getElementById('outDate').innerText = document.getElementById('date').value;
         
-        // Attendees
         const p = parseInt(document.getElementById('attPatients').value)||0, c = parseInt(document.getElementById('attCarers').value)||0, v = parseInt(document.getElementById('attVolunteers').value)||0, o = parseInt(document.getElementById('attOthers').value)||0;
         let dArr = []; if(p>0) dArr.push(`病人: ${p}`); if(c>0) dArr.push(`照顧者: ${c}`); if(v>0) dArr.push(`義工: ${v}`); if(o>0) dArr.push(`其他: ${o}`);
         document.getElementById('outAttendees').innerHTML = `<div class="fw-bold fs-5">${p+c+v+o}</div><div class="small text-muted" style="line-height:1.2; margin-top:4px;">${dArr.length > 0 ? `(${dArr.join(', ')})` : ""}</div>`;
-        
         document.getElementById('outValidQ').innerText = document.getElementById('validQ').value;
         document.getElementById('outConclusion').innerText = document.getElementById('conclusionText').value;
-        
         const goalsList = document.getElementById('outGoalsList'); goalsList.innerHTML = '';
         ['goal1', 'goal2', 'goal3'].forEach(id => { const val = document.getElementById(id).value; if(val) goalsList.innerHTML += `<li>${val}</li>`; });
 
-        // --- CHARTS (V12.0 UNIVERSAL LOGIC) ---
+        // --- CHARTS (V13.0 LOGIC) ---
         const chartsArea = document.getElementById('outChartsArea');
         chartsArea.innerHTML = '';
         const qCards = document.querySelectorAll('#questionsContainer .dynamic-card');
@@ -528,37 +593,43 @@
             const title = card.querySelector('.q-title').value;
             const source = card.querySelector('.question-source').value;
             
-            // Standard Colors for 5-point scale (Green -> Red)
             const stdColors = ['#198754', '#20c997', '#ffc107', '#fd7e14', '#dc3545']; 
-            // Dynamic Colors for other categories
             const dynColors = ['#0d6efd', '#6610f2', '#6f42c1', '#d63384', '#dc3545', '#fd7e14', '#ffc107', '#198754', '#20c997', '#0dcaf0'];
 
             let chartDataPoints = [];
             let total = 0;
 
             if (source === 'MANUAL_INPUT') {
-                // ... Old Standard Logic ...
-                const inputs = card.querySelectorAll('.q-val');
+                const inputs = card.querySelectorAll(`#manual-inputs-${index+1} .q-val`);
                 const vals = Array.from(inputs).map(i => parseInt(i.value) || 0);
                 const labels = ['非常同意', '同意', '一般', '不同意', '非常不同意'];
-                vals.forEach((v, i) => { if(v>0) chartDataPoints.push({ name: labels[i], y: v, color: stdColors[i] }); total += v; });
-            } else if (source && excelData.length > 0) {
-                // *** V12.0 DYNAMIC ANALYSIS ***
-                const counts = {};
-                excelData.forEach(row => {
-                    let val = String(row[source] || "").trim();
-                    if(val) {
-                        counts[val] = (counts[val] || 0) + 1;
-                        total++;
+                vals.forEach((v, i) => { if(v>0) { chartDataPoints.push({ name: labels[i], y: v, color: stdColors[i] }); total += v; } });
+            
+            } else if (source === 'CUSTOM_MANUAL') {
+                // *** V13 NEW LOGIC ***
+                const rows = card.querySelectorAll('.custom-option-row');
+                let cIndex = 0;
+                rows.forEach(r => {
+                    const label = r.querySelector('.cust-opt-label').value;
+                    const val = parseInt(r.querySelector('.cust-opt-val').value) || 0;
+                    if (label && val > 0) {
+                        chartDataPoints.push({ name: label, y: val, color: dynColors[cIndex % dynColors.length] });
+                        total += val;
+                        cIndex++;
                     }
                 });
 
-                // Detect if Standard 5-Point Scale (contains keys like "非常同意", "Agree", "5")
+            } else if (source && excelData.length > 0) {
+                // ... (Excel Auto Logic from V12) ...
+                const counts = {};
+                excelData.forEach(row => {
+                    let val = String(row[source] || "").trim();
+                    if(val) { counts[val] = (counts[val] || 0) + 1; total++; }
+                });
                 const keys = Object.keys(counts);
                 const isStandard = keys.some(k => k.includes("同意") || k.includes("Agree") || k === "5");
 
                 if (isStandard) {
-                    // Force Standard Order & Color
                     const stdMap = [
                         { keys: ["非常同意", "十分同意", "Strongly Agree", "5"], label: "非常同意", color: stdColors[0] },
                         { keys: ["同意", "Agree", "4"], label: "同意", color: stdColors[1] },
@@ -566,25 +637,22 @@
                         { keys: ["不同意", "Disagree", "2"], label: "不同意", color: stdColors[3] },
                         { keys: ["非常不同意", "十分不同意", "Strongly Disagree", "1"], label: "非常不同意", color: stdColors[4] }
                     ];
-                    
                     stdMap.forEach(map => {
                         let count = 0;
                         keys.forEach(k => { if(map.keys.some(mk => k.includes(mk))) count += counts[k]; });
                         if(count > 0) chartDataPoints.push({ name: map.label, y: count, color: map.color });
                     });
                 } else {
-                    // Dynamic Mode (e.g. Yes/No, Age, Locations)
                     let cIndex = 0;
                     for (const [key, val] of Object.entries(counts)) {
                         chartDataPoints.push({ name: key, y: val, color: dynColors[cIndex % dynColors.length] });
                         cIndex++;
                     }
-                    // Sort by count descending for nicer look
                     chartDataPoints.sort((a, b) => b.y - a.y);
                 }
-            } else return; // Skip if no data
+            } else return; 
 
-            // Render Chart & Table
+            // Render Chart
             const chartId = `chart-container-${index}`;
             let tableHtml = `<table class="stats-table"><thead><tr><th>選項</th><th>人數</th><th>百分比</th></tr></thead><tbody>`;
             chartDataPoints.forEach(pt => {
@@ -606,7 +674,7 @@
                         innerSize: 50,
                         dataLabels: {
                             enabled: true, distance: 5,
-                            formatter: function() { return `<b>${this.point.name}</b>:<br>${this.y} (${this.percentage.toFixed(1)}%)`; },
+                            formatter: function() { return this.y > 0 ? `<b>${this.point.name}</b>:<br>${this.y} (${this.percentage.toFixed(1)}%)` : null; },
                             style: { fontSize: '9px', color: 'black', textOutline: 'none' }, connectorPadding: 2
                         }
                     }
@@ -616,23 +684,20 @@
             });
         });
 
-        // ... (Text, Finance, Photos same as V9.9) ...
-        // [For brevity, assuming standard render functions here]
-        renderTextAndFinance(); 
+        // ... (Render Text & Finance same as V9.9) ...
+        renderTextAndFinance();
     }
 
     function renderTextAndFinance() {
-        // Text
         const textContainer = document.getElementById('outTextSections'); textContainer.innerHTML = '';
         document.querySelectorAll('#textSectionsContainer .dynamic-card').forEach(card => {
             const title = card.querySelector('.text-title').value; const source = card.querySelector('.text-source').value;
             let html = '';
-            if (source === 'MANUAL_INPUT') html = card.querySelector('.text-manual-val').value || "無內容";
+            if (source === 'MANUAL_INPUT') html = card.querySelector('.text-manual-val').value ? `<p style="white-space: pre-wrap;">${card.querySelector('.text-manual-val').value}</p>` : "<p class='text-muted'>無內容</p>";
             else if (source && excelData.length) { let ul=""; excelData.forEach(r=>{if(r[source]) ul+=`<li class="mb-1 border-bottom pb-1">• ${r[source]}</li>`}); html = ul?`<ul class="list-unstyled mb-0">${ul}</ul>`:"無內容"; }
             textContainer.innerHTML += `<div class="mt-3"><p class="fw-bold mb-1">${title}</p><div class="p-2 bg-light border rounded small">${html}</div></div>`;
         });
 
-        // Finance
         const finSection = document.getElementById('outFinanceSection');
         let incomeHtml = '', expenseHtml = '', totalInc = 0, totalExp = 0, hasItem = false;
         document.querySelectorAll('#incomeContainer .input-group').forEach(r => { const i = r.querySelector('input[type=text]').value, a = parseFloat(r.querySelector('input[type=number]').value)||0; if(i||a){ hasItem=true; totalInc+=a; incomeHtml+=`<tr><td>${i}</td><td class="fin-amount">$${a.toFixed(2)}</td></tr>`; }});
