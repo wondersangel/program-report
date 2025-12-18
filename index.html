@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>活動報告生成器 V10.2</title>
+    <title>活動報告生成器 V11.1</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
@@ -31,20 +31,11 @@
         /* Report Output Styles */
         .report-section { display: none; background: white; padding: 50px; margin-top: 20px; border: 1px solid #ddd; }
         
-        /* --- V10 Compact Chart Layout --- */
-        .chart-row { 
-            display: flex; 
-            align-items: center; 
-            page-break-inside: avoid; 
-            margin-bottom: 15px; 
-            border-bottom: 1px dashed #eee; 
-            padding-bottom: 15px; 
-        }
+        /* Chart Layout */
+        .chart-row { display: flex; align-items: center; page-break-inside: avoid; margin-bottom: 15px; border-bottom: 1px dashed #eee; padding-bottom: 15px; }
         .chart-col { width: 60%; }
         .table-col { width: 40%; padding-left: 20px; }
-        
-        /* Height for 3 per page */
-        .chart-container { height: 220px; width: 100%; } 
+        .chart-container { height: 220px; width: 100%; }
         
         /* Stats Table */
         .stats-table { width: 100%; font-size: 0.8rem; border-collapse: collapse; } 
@@ -86,8 +77,8 @@
 <div class="container py-4 no-print">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h3 class="text-primary fw-bold mb-0">🏥 活動報告生成器 V10.2</h3>
-            <small class="text-muted">已隱藏 0% 的圖表標籤</small>
+            <h3 class="text-primary fw-bold mb-0">🏥 活動報告生成器 V11.1</h3>
+            <small class="text-muted">支援多檔合併 (請確保欄位格式一致)</small>
         </div>
         <div class="text-end">
             <button class="btn btn-outline-primary me-2" onclick="saveProject()">💾 儲存專案 (.json)</button>
@@ -104,14 +95,29 @@
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-header">📂 步驟 1：匯入數據 (Excel)</div>
+    <div class="card border-primary">
+        <div class="card-header bg-primary text-white">📂 步驟 1：匯入數據 (支援多檔合併)</div>
         <div class="card-body py-3">
+            <div class="row align-items-center mb-3">
+                <div class="col-md-8">
+                    <label class="form-label fw-bold">Excel 格式設定：</label>
+                    <div class="input-group">
+                        <span class="input-group-text">標題/題目在第</span>
+                        <input type="number" id="headerRowIndex" class="form-control" value="1" min="1" style="max-width: 80px;">
+                        <span class="input-group-text">行 (Row)</span>
+                    </div>
+                    <div class="form-text text-muted">
+                        * Google Form 下載通常是第 1 行。<br>
+                        * 若上載多個檔案，請確保它們的格式(標題行位置及題目)相同。
+                    </div>
+                </div>
+            </div>
+
             <div class="upload-zone py-3" id="dropZone" onclick="document.getElementById('excelInput').click()">
-                <h5 class="mb-1">點擊匯入 Google Form Excel (.xlsx)</h5>
+                <h5 class="mb-1">點擊或框選多個 Excel 檔案 (.xlsx / .csv)</h5>
                 <div id="fileInfo" class="mt-1 text-success fw-bold small"></div>
             </div>
-            <input type="file" id="excelInput" style="display:none" accept=".xlsx, .xls" onchange="handleExcelUpload(this)">
+            <input type="file" id="excelInput" style="display:none" accept=".xlsx, .xls, .csv" multiple onchange="handleExcelUpload(this)">
         </div>
     </div>
 
@@ -154,7 +160,7 @@
                 </div>
                 
                 <div class="col-md-4">
-                    <label class="form-label">收回有效問卷</label>
+                    <label class="form-label">收回有效問卷 (總數)</label>
                     <input type="number" id="validQ" class="form-control bg-light" readonly>
                 </div>
                 <div class="col-md-4"></div>
@@ -351,26 +357,67 @@
         addFinanceRow('expense');
     };
 
-    // --- Excel Handling ---
-    function handleExcelUpload(input) {
-        const file = input.files[0];
-        if (!file) return;
-        document.getElementById('fileInfo').innerText = `已選取: ${file.name}`;
+    // --- Excel Handling V11.1 Multi-File ---
+    async function handleExcelUpload(input) {
+        const files = input.files;
+        if (!files.length) return;
+        
+        document.getElementById('fileInfo').innerText = `正在處理 ${files.length} 個檔案...`;
         document.querySelector('.upload-zone').classList.add('active');
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, {type: 'array'});
-            excelData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {defval:""});
+        
+        const headerIndex = parseInt(document.getElementById('headerRowIndex').value) || 1;
+        const range = headerIndex - 1;
+
+        // Helper to read file as Promise
+        const readFile = (file) => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const json = XLSX.utils.sheet_to_json(sheet, { defval: "", range: range });
+                    resolve(json);
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        };
+
+        try {
+            const allFilesData = await Promise.all(Array.from(files).map(readFile));
+            
+            // Merge all data
+            let mergedData = [];
+            allFilesData.forEach(fileData => {
+                mergedData = mergedData.concat(fileData);
+            });
+
+            excelData = mergedData;
+
             if(excelData.length > 0) {
-                excelHeaders = Object.keys(excelData[0]).filter(k => k !== 'Timestamp' && k !== '時間戳記');
+                // Filter keys
+                excelHeaders = Object.keys(excelData[0]).filter(k => k !== 'Timestamp' && k !== '時間戳記' && k !== '__EMPTY');
                 document.getElementById('validQ').value = excelData.length;
                 updateAllDropdowns();
-                excelHeaders.forEach(h => { if(h.includes("日期")) try { document.getElementById('date').value = new Date(excelData[0][h]).toISOString().split('T')[0]; } catch(e){} });
-                alert("✅ Excel 數據已匯入！");
+                
+                // Try guess date from first record
+                excelHeaders.forEach(h => { 
+                    if(h.includes("日期")) {
+                        try { document.getElementById('date').value = new Date(excelData[0][h]).toISOString().split('T')[0]; } catch(e){} 
+                    }
+                });
+
+                document.getElementById('fileInfo').innerText = `✅ 成功合併 ${files.length} 個檔案，共 ${excelData.length} 筆數據`;
+                alert(`成功合併 ${files.length} 個檔案！\n共 ${excelData.length} 份問卷資料。`);
+            } else {
+                alert("⚠️ 讀取不到數據，請檢查檔案內容或標題行設定。");
             }
-        };
-        reader.readAsArrayBuffer(file);
+
+        } catch (err) {
+            console.error(err);
+            alert("讀取檔案時發生錯誤，請確保檔案格式正確。");
+        }
     }
 
     function updateAllDropdowns() {
@@ -479,7 +526,6 @@
             actName: document.getElementById('actName').value,
             target: document.getElementById('target').value,
             date: document.getElementById('date').value,
-            // Attendees Breakdown
             attPatients: document.getElementById('attPatients').value,
             attCarers: document.getElementById('attCarers').value,
             attVolunteers: document.getElementById('attVolunteers').value,
@@ -624,7 +670,7 @@
         document.getElementById('outTarget').innerText = document.getElementById('target').value;
         document.getElementById('outDate').innerText = document.getElementById('date').value;
         
-        // --- Attendees Logic (Updated V9.9) ---
+        // Attendees
         const p = parseInt(document.getElementById('attPatients').value) || 0;
         const c = parseInt(document.getElementById('attCarers').value) || 0;
         const v = parseInt(document.getElementById('attVolunteers').value) || 0;
@@ -702,7 +748,6 @@
                 </div>`;
             chartsArea.appendChild(wrapper);
 
-            // V10.2: Smart Labels (Hide 0 count)
             Highcharts.chart(chartId, {
                 chart: { type: 'pie', backgroundColor: null, animation: false },
                 title: { text: null },
@@ -713,7 +758,6 @@
                             enabled: true,
                             distance: 5, 
                             formatter: function() { 
-                                // NEW LOGIC: Only show label if y > 0
                                 if(this.y > 0) {
                                     return `<b>${this.point.name}</b>:<br>${this.y}人 (${this.percentage.toFixed(1)}%)`;
                                 }
@@ -751,7 +795,7 @@
             textContainer.innerHTML += `<div class="mt-3"><p class="fw-bold mb-1">${title}</p><div class="p-2 bg-light border rounded small">${html}</div></div>`;
         });
 
-        // --- Finance (Updated V9.9 Smart Hide) ---
+        // Finance
         const finTable = document.getElementById('outFinanceTable');
         const finSection = document.getElementById('outFinanceSection');
         let incomeHtml = '', expenseHtml = '';
