@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>活動報告生成器 V15.0</title>
+    <title>活動報告生成器 V16.0</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
@@ -15,28 +15,35 @@
         body { background-color: #f0f2f5; font-family: "Microsoft JhengHei", sans-serif; }
         .container { max-width: 950px; }
         
-        /* UI Components */
+        /* Input Cards */
         .card { border: none; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; border-radius: 8px; }
         .card-header { background-color: #fff; border-bottom: 2px solid #f0f0f0; font-weight: bold; color: #0d6efd; border-radius: 8px 8px 0 0 !important; }
+        
+        /* Upload Zone */
         .upload-zone { border: 2px dashed #adb5bd; background-color: #e9ecef; padding: 25px; text-align: center; border-radius: 10px; cursor: pointer; transition: 0.3s; }
         .upload-zone:hover { background-color: #dee2e6; border-color: #0d6efd; }
         .upload-zone.active { background-color: #d1e7dd; border-color: #198754; }
-        
+
+        /* Dynamic Sections */
         .dynamic-card { border-left: 4px solid #0d6efd; background: #fff; padding: 15px; margin-bottom: 10px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .manual-inputs { display: none; background: #f8f9fa; padding: 10px; border-radius: 5px; margin-top: 10px; }
         .custom-option-row { display: flex; gap: 5px; margin-bottom: 5px; }
 
-        /* Report Output */
+        /* Report Output Styles */
         .report-section { display: none; background: white; padding: 50px; margin-top: 20px; border: 1px solid #ddd; }
+        
+        /* Chart Layout */
         .chart-row { display: flex; align-items: center; page-break-inside: avoid; margin-bottom: 15px; border-bottom: 1px dashed #eee; padding-bottom: 15px; }
         .chart-col { width: 60%; min-width: 350px; }
         .table-col { width: 40%; padding-left: 20px; }
         .chart-container { height: 220px; width: 100%; }
         
+        /* Stats Table - Fixed Layout */
         .stats-table { width: 100%; font-size: 0.8rem; border-collapse: collapse; } 
         .stats-table th, .stats-table td { border: 1px solid #dee2e6; padding: 4px; text-align: center; }
         .stats-table th { background-color: #f8f9fa; }
 
+        /* Financial Table */
         .fin-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 0.9rem; }
         .fin-table th, .fin-table td { border: 1px solid #dee2e6; padding: 8px; }
         .fin-table th { background-color: #f8f9fa; text-align: center; }
@@ -45,6 +52,7 @@
 
         .photo-preview { width: 150px; height: 150px; object-fit: cover; margin: 5px; border: 1px solid #ddd; }
 
+        /* Signature Section */
         .signature-box { margin-top: 50px; page-break-inside: avoid; font-size: 1.0rem; }
         .sig-line { border-bottom: 1px solid #000; display: inline-block; width: 280px; }
         .sig-row { display: flex; justify-content: space-between; margin-bottom: 40px; align-items: flex-end; }
@@ -69,8 +77,8 @@
 <div class="container py-4 no-print">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h3 class="text-primary fw-bold mb-0">🏥 活動報告生成器 V15.0</h3>
-            <small class="text-muted">新增：簽署欄位顯示開關 (適合純數據報告)</small>
+            <h3 class="text-primary fw-bold mb-0">🏥 活動報告生成器 V16.0</h3>
+            <small class="text-muted">修復：表格固定順序 + PDF 儲存穩定性</small>
         </div>
         <div class="text-end">
             <button class="btn btn-outline-primary me-2" onclick="saveProject()">💾 儲存專案</button>
@@ -82,7 +90,8 @@
     <div class="alert alert-warning border-warning d-flex align-items-center" role="alert">
         <span class="fs-4 me-2">💡</span>
         <div>
-            <strong>新功能提示：</strong> 您現在可以在最下方的「步驟 6」中，自由選擇是否在報告中顯示「簽署欄位」。
+            <strong>列印小貼士：</strong> 
+            若要移除 PDF 下方的「檔案來源/網址」，請在列印視窗的「更多設定」中，<strong>取消勾選「頁首及頁尾」</strong>。
         </div>
     </div>
 
@@ -207,19 +216,16 @@
         <div class="card-body">
             <div class="mb-3"><label class="form-label">總結內容</label><textarea id="conclusionText" class="form-control" rows="3"></textarea></div>
             <div class="mb-3"><label class="form-label">上載照片</label><input type="file" id="photoInput" class="form-control" multiple accept="image/*" onchange="previewPhotos()"><div id="inputPhotoPreview" class="d-flex flex-wrap mt-2"></div></div>
-            
             <hr>
-            
             <div class="form-check form-switch p-3 bg-light border rounded">
                 <input class="form-check-input" type="checkbox" id="includeSig" checked>
-                <label class="form-check-label fw-bold" for="includeSig">於報告底部顯示「簽署欄位」 (撰寫人/部門主管)</label>
-                <div class="form-text">取消勾選此項目，報告將變為純數據顯示，不含簽署橫線。</div>
+                <label class="form-check-label fw-bold" for="includeSig">於報告底部顯示「簽署欄位」</label>
             </div>
         </div>
     </div>
 
     <div class="d-grid gap-2 mb-5">
-        <button class="btn btn-success btn-lg fw-bold" onclick="generateReport()">🚀 生成報告</button>
+        <button class="btn btn-success btn-lg fw-bold" onclick="printToSave()">🚀 預覽及儲存報告 (PDF)</button>
     </div>
 </div>
 
@@ -263,7 +269,7 @@
 
     <div class="text-center mt-5 no-print py-3 border-top">
         <button class="btn btn-secondary me-3" onclick="window.location.reload()">🔄 重新開始</button>
-        <button class="btn btn-primary btn-lg shadow" onclick="window.print()">🖨️ 列印 / 另存 PDF</button>
+        <button class="btn btn-primary btn-lg shadow" onclick="printToSave()">🖨️ 列印 / 另存 PDF</button>
     </div>
 </div>
 
@@ -485,7 +491,6 @@
             validQ: document.getElementById('validQ').value,
             goals: [document.getElementById('goal1').value, document.getElementById('goal2').value, document.getElementById('goal3').value],
             conclusion: document.getElementById('conclusionText').value,
-            // V15: Save Signature State
             includeSig: document.getElementById('includeSig').checked,
             questions: [], textSections: [], finIncome: [], finExpense: [],
             excelData: excelData, images: uploadedImages
@@ -535,7 +540,6 @@
                 document.getElementById('goal2').value = data.goals[1];
                 document.getElementById('goal3').value = data.goals[2];
                 document.getElementById('conclusionText').value = data.conclusion;
-                // V15: Restore Signature
                 document.getElementById('includeSig').checked = data.includeSig !== false; 
 
                 if(data.excelData) { excelData = data.excelData; excelHeaders = Object.keys(excelData[0]).filter(k=>k!=='Timestamp'); }
@@ -562,8 +566,7 @@
 
                 document.getElementById('textSectionsContainer').innerHTML = '';
                 textSectionCounter = 0;
-                data.textSections.forEach(t => {
-                    addTextSection(t.title);
+                data.textSections.forEach(t => { addTextSection(t.title); 
                     const cards = document.querySelectorAll('#textSectionsContainer .dynamic-card');
                     const card = cards[cards.length-1];
                     const sel = card.querySelector('.text-source');
@@ -588,9 +591,8 @@
         reader.readAsText(file);
     }
 
-    // --- Generate Report ---
+    // --- GENERATE REPORT (V16.0) ---
     function generateReport() {
-        // V15: Signature Visibility
         const includeSig = document.getElementById('includeSig').checked;
         document.getElementById('signatureSection').style.display = includeSig ? 'block' : 'none';
 
@@ -620,13 +622,27 @@
             const dynColors = ['#0d6efd', '#6610f2', '#6f42c1', '#d63384', '#dc3545', '#fd7e14', '#ffc107', '#198754', '#20c997', '#0dcaf0'];
 
             let chartDataPoints = [];
+            let tableDataPoints = []; // V16 Separate Array for Table (to keep 0s)
             let total = 0;
+
+            // Helper to get percentage
+            const getPct = (val) => total > 0 ? ((val / total) * 100).toFixed(1) : "0.0";
 
             if (source === 'MANUAL_INPUT') {
                 const inputs = card.querySelectorAll(`#manual-inputs-${index+1} .q-val`);
                 const vals = Array.from(inputs).map(i => parseInt(i.value) || 0);
                 const labels = ['非常同意', '同意', '一般', '不同意', '非常不同意'];
-                vals.forEach((v, i) => { if(v>0) { chartDataPoints.push({ name: labels[i], y: v, color: stdColors[i] }); total += v; } });
+                
+                // Calculate Total First
+                total = vals.reduce((a, b) => a + b, 0);
+
+                // Build Data
+                vals.forEach((v, i) => {
+                    // For Table: Keep everything (V16 Requirement)
+                    tableDataPoints.push({ name: labels[i], y: v, pct: getPct(v) });
+                    // For Chart: Only > 0
+                    if(v > 0) chartDataPoints.push({ name: labels[i], y: v, color: stdColors[i] });
+                });
             
             } else if (source === 'CUSTOM_MANUAL') {
                 const rows = card.querySelectorAll('.custom-option-row');
@@ -634,18 +650,24 @@
                 rows.forEach(r => {
                     const label = r.querySelector('.cust-opt-label').value;
                     const val = parseInt(r.querySelector('.cust-opt-val').value) || 0;
-                    if (label && val > 0) {
+                    if (label) {
                         let color = dynColors[cIndex % dynColors.length];
                         if(label.includes('非常同意')) color = stdColors[0];
                         else if(label.includes('同意')) color = stdColors[1];
                         else if(label.includes('一般')) color = stdColors[2];
                         else if(label.includes('不同意')) color = stdColors[3];
                         else if(label.includes('非常不同意')) color = stdColors[4];
-                        chartDataPoints.push({ name: label, y: val, color: color });
+                        
+                        // For Custom, we collect first, calc total later
+                        tableDataPoints.push({ name: label, y: val, color: color });
                         total += val;
                         cIndex++;
                     }
                 });
+                // Update percentages after total known
+                tableDataPoints.forEach(pt => pt.pct = getPct(pt.y));
+                // Chart gets filtered
+                chartDataPoints = tableDataPoints.filter(pt => pt.y > 0);
 
             } else if (source && excelData.length > 0) {
                 const counts = {};
@@ -661,26 +683,33 @@
                         { keys: ["不同意", "Disagree", "2"], label: "不同意", color: stdColors[3] },
                         { keys: ["非常不同意", "十分不同意", "Strongly Disagree", "1"], label: "非常不同意", color: stdColors[4] }
                     ];
+                    
+                    // V16: Standard Mode - Force 5 rows
                     stdMap.forEach(map => {
                         let count = 0;
                         keys.forEach(k => { if(map.keys.some(mk => k.includes(mk))) count += counts[k]; });
+                        // Table: Always add
+                        tableDataPoints.push({ name: map.label, y: count, pct: getPct(count) });
+                        // Chart: Only add if > 0
                         if(count > 0) chartDataPoints.push({ name: map.label, y: count, color: map.color });
                     });
                 } else {
                     let cIndex = 0;
                     for (const [key, val] of Object.entries(counts)) {
-                        chartDataPoints.push({ name: key, y: val, color: dynColors[cIndex % dynColors.length] });
+                        tableDataPoints.push({ name: key, y: val, color: dynColors[cIndex % dynColors.length] });
                         cIndex++;
                     }
-                    chartDataPoints.sort((a, b) => b.y - a.y);
+                    tableDataPoints.sort((a, b) => b.y - a.y);
+                    tableDataPoints.forEach(pt => pt.pct = getPct(pt.y));
+                    chartDataPoints = tableDataPoints.filter(pt => pt.y > 0);
                 }
             } else return; 
 
+            // Render
             const chartId = `chart-container-${index}`;
             let tableHtml = `<table class="stats-table"><thead><tr><th>選項</th><th>人數</th><th>百分比</th></tr></thead><tbody>`;
-            chartDataPoints.forEach(pt => {
-                const pct = total > 0 ? ((pt.y / total) * 100).toFixed(1) : "0.0";
-                tableHtml += `<tr><td>${pt.name}</td><td>${pt.y}</td><td>${pct}%</td></tr>`;
+            tableDataPoints.forEach(pt => {
+                tableHtml += `<tr><td>${pt.name}</td><td>${pt.y}</td><td>${pt.pct}%</td></tr>`;
             });
             tableHtml += `</tbody></table>`;
 
@@ -712,6 +741,17 @@
         renderTextAndFinance();
     }
 
+    function printToSave() {
+        // V16 Fix: Add delay to prevent blank PDF
+        document.getElementById('reportOutput').style.display = 'block';
+        setTimeout(() => {
+            generateReport(); // Regenerate to ensure fresh DOM
+            setTimeout(() => {
+                window.print();
+            }, 500); // 500ms Buffer
+        }, 100);
+    }
+
     function renderTextAndFinance() {
         const textContainer = document.getElementById('outTextSections'); textContainer.innerHTML = '';
         document.querySelectorAll('#textSectionsContainer .dynamic-card').forEach(card => {
@@ -738,7 +778,7 @@
         else document.getElementById('photoSection').style.display='none';
 
         document.getElementById('reportOutput').style.display = 'block';
-        setTimeout(() => window.scrollTo(0, document.getElementById('reportOutput').offsetTop), 100);
+        window.scrollTo(0, document.getElementById('reportOutput').offsetTop);
     }
 </script>
 
