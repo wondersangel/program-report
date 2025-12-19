@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>活動報告生成器 V16.0</title>
+    <title>活動報告生成器 V17.0</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
@@ -15,16 +15,13 @@
         body { background-color: #f0f2f5; font-family: "Microsoft JhengHei", sans-serif; }
         .container { max-width: 950px; }
         
-        /* Input Cards */
+        /* UI Components */
         .card { border: none; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; border-radius: 8px; }
         .card-header { background-color: #fff; border-bottom: 2px solid #f0f0f0; font-weight: bold; color: #0d6efd; border-radius: 8px 8px 0 0 !important; }
-        
-        /* Upload Zone */
         .upload-zone { border: 2px dashed #adb5bd; background-color: #e9ecef; padding: 25px; text-align: center; border-radius: 10px; cursor: pointer; transition: 0.3s; }
         .upload-zone:hover { background-color: #dee2e6; border-color: #0d6efd; }
         .upload-zone.active { background-color: #d1e7dd; border-color: #198754; }
-
-        /* Dynamic Sections */
+        
         .dynamic-card { border-left: 4px solid #0d6efd; background: #fff; padding: 15px; margin-bottom: 10px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .manual-inputs { display: none; background: #f8f9fa; padding: 10px; border-radius: 5px; margin-top: 10px; }
         .custom-option-row { display: flex; gap: 5px; margin-bottom: 5px; }
@@ -38,7 +35,7 @@
         .table-col { width: 40%; padding-left: 20px; }
         .chart-container { height: 220px; width: 100%; }
         
-        /* Stats Table - Fixed Layout */
+        /* Stats Table */
         .stats-table { width: 100%; font-size: 0.8rem; border-collapse: collapse; } 
         .stats-table th, .stats-table td { border: 1px solid #dee2e6; padding: 4px; text-align: center; }
         .stats-table th { background-color: #f8f9fa; }
@@ -77,8 +74,8 @@
 <div class="container py-4 no-print">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h3 class="text-primary fw-bold mb-0">🏥 活動報告生成器 V16.0</h3>
-            <small class="text-muted">修復：表格固定順序 + PDF 儲存穩定性</small>
+            <h3 class="text-primary fw-bold mb-0">🏥 活動報告生成器 V17.0</h3>
+            <small class="text-muted">修復：列表固定排序 (非常同意優先) + PDF穩定性</small>
         </div>
         <div class="text-end">
             <button class="btn btn-outline-primary me-2" onclick="saveProject()">💾 儲存專案</button>
@@ -90,8 +87,8 @@
     <div class="alert alert-warning border-warning d-flex align-items-center" role="alert">
         <span class="fs-4 me-2">💡</span>
         <div>
-            <strong>列印小貼士：</strong> 
-            若要移除 PDF 下方的「檔案來源/網址」，請在列印視窗的「更多設定」中，<strong>取消勾選「頁首及頁尾」</strong>。
+            <strong>提示：</strong> 
+            程式已強制將列表按「非常同意 -> 同意 -> 一般 -> 不同意 -> 非常不同意」排序。
         </div>
     </div>
 
@@ -292,7 +289,6 @@
         addFinanceRow('expense');
     };
 
-    // --- Excel Handling ---
     async function handleExcelUpload(input) {
         const files = input.files;
         if (!files.length) return;
@@ -344,7 +340,6 @@
         });
     }
 
-    // --- Dynamic DOM ---
     function addQuestionRow() {
         questionCounter++;
         const div = document.createElement('div');
@@ -362,7 +357,6 @@
                 </select>
                 <button class="btn btn-outline-success btn-sm" type="button" onclick="extractDataToManual(${questionCounter})" title="從選取的 Excel 欄位讀取數據並填入下方修正">📝 提取數據以修正</button>
             </div>
-            
             <div id="manual-inputs-${questionCounter}" class="manual-inputs row g-1">
                 <div class="col"><input type="number" class="form-control form-control-sm q-val" placeholder="非常同意"></div>
                 <div class="col"><input type="number" class="form-control form-control-sm q-val" placeholder="同意"></div>
@@ -370,7 +364,6 @@
                 <div class="col"><input type="number" class="form-control form-control-sm q-val" placeholder="不同意"></div>
                 <div class="col"><input type="number" class="form-control form-control-sm q-val" placeholder="非常不同意"></div>
             </div>
-
             <div id="custom-inputs-${questionCounter}" class="manual-inputs">
                 <div class="custom-options-container"></div>
                 <button class="btn btn-sm btn-outline-secondary mt-2" onclick="addCustomOption(${questionCounter})">+ 新增選項</button>
@@ -384,11 +377,7 @@
         const container = document.querySelector(`#custom-inputs-${qId} .custom-options-container`);
         const row = document.createElement('div');
         row.className = 'custom-option-row';
-        row.innerHTML = `
-            <input type="text" class="form-control form-control-sm cust-opt-label" value="${label}" placeholder="選項名稱">
-            <input type="number" class="form-control form-control-sm cust-opt-val" value="${val}" placeholder="人數" style="width: 80px;">
-            <button class="btn btn-sm btn-outline-danger" onclick="this.parentElement.remove()">✕</button>
-        `;
+        row.innerHTML = `<input type="text" class="form-control form-control-sm cust-opt-label" value="${label}" placeholder="選項名稱"><input type="number" class="form-control form-control-sm cust-opt-val" value="${val}" placeholder="人數" style="width: 80px;"><button class="btn btn-sm btn-outline-danger" onclick="this.parentElement.remove()">✕</button>`;
         container.appendChild(row);
     }
 
@@ -396,32 +385,24 @@
         const card = document.getElementById(`q-card-${qId}`);
         const sourceSelect = card.querySelector('.question-source');
         const colName = sourceSelect.value;
-
         if (!colName || colName.includes('MANUAL')) { alert("請先選擇一個 Excel 欄位"); return; }
         if (excelData.length === 0) { alert("請先上載 Excel"); return; }
-
         const counts = {};
         excelData.forEach(row => { let val = String(row[colName]||"").trim(); if(val) counts[val] = (counts[val]||0)+1; });
-
         if (Object.keys(counts).length === 0) { alert("無數據"); return; }
-
         sourceSelect.value = 'CUSTOM_MANUAL';
         toggleManualInput(sourceSelect, qId);
-        
         const container = card.querySelector(`#custom-inputs-${qId} .custom-options-container`);
         container.innerHTML = '';
         for (const [label, count] of Object.entries(counts)) { addCustomOption(qId, label, count); }
-        
         const ti = card.querySelector('.q-title');
         if (!ti.value) ti.value = colName;
         alert("數據已提取，可手動修正");
     }
 
     function toggleManualInput(sel, id) {
-        const manualDiv = document.getElementById(`manual-inputs-${id}`);
-        const customDiv = document.getElementById(`custom-inputs-${id}`);
-        manualDiv.style.display = sel.value === 'MANUAL_INPUT' ? 'flex' : 'none';
-        customDiv.style.display = sel.value === 'CUSTOM_MANUAL' ? 'block' : 'none';
+        document.getElementById(`manual-inputs-${id}`).style.display = sel.value === 'MANUAL_INPUT' ? 'flex' : 'none';
+        document.getElementById(`custom-inputs-${id}`).style.display = sel.value === 'CUSTOM_MANUAL' ? 'block' : 'none';
         if(sel.value && !sel.value.includes('MANUAL')) {
             const row = sel.closest('.dynamic-card');
             const ti = row.querySelector('.q-title');
@@ -433,24 +414,12 @@
         textSectionCounter++;
         const div = document.createElement('div');
         div.className = 'dynamic-card';
-        div.innerHTML = `
-            <div class="d-flex justify-content-between mb-2">
-                <input type="text" class="form-control form-control-sm me-2 text-title fw-bold" value="${title}" placeholder="標題">
-                <button class="btn btn-sm text-danger border-0 p-0" onclick="this.parentElement.parentElement.remove()">✕</button>
-            </div>
-            <select class="form-select form-select-sm excel-column-selector text-source mb-2" onchange="toggleTextManual(this, 'manual-text-${textSectionCounter}')">
-                <option value="">-- 選 Excel 欄位 --</option><option value="MANUAL_INPUT">✍️ 手動輸入</option>
-            </select>
-            <div id="manual-text-${textSectionCounter}" class="manual-inputs">
-                <textarea class="form-control text-manual-val" rows="3" placeholder="手動內容..."></textarea>
-            </div>`;
+        div.innerHTML = `<div class="d-flex justify-content-between mb-2"><input type="text" class="form-control form-control-sm me-2 text-title fw-bold" value="${title}" placeholder="標題"><button class="btn btn-sm text-danger border-0 p-0" onclick="this.parentElement.parentElement.remove()">✕</button></div><select class="form-select form-select-sm excel-column-selector text-source mb-2" onchange="toggleTextManual(this, 'manual-text-${textSectionCounter}')"><option value="">-- 選 Excel 欄位 --</option><option value="MANUAL_INPUT">✍️ 手動輸入</option></select><div id="manual-text-${textSectionCounter}" class="manual-inputs"><textarea class="form-control text-manual-val" rows="3" placeholder="手動內容..."></textarea></div>`;
         document.getElementById('textSectionsContainer').appendChild(div);
         if(excelHeaders.length>0) updateAllDropdowns();
     }
 
-    function toggleTextManual(sel, id) {
-        document.getElementById(id).style.display = sel.value === 'MANUAL_INPUT' ? 'block' : 'none';
-    }
+    function toggleTextManual(sel, id) { document.getElementById(id).style.display = sel.value === 'MANUAL_INPUT' ? 'block' : 'none'; }
 
     function addFinanceRow(type) {
         const div = document.createElement('div');
@@ -466,11 +435,7 @@
         if(input.files) {
             Array.from(input.files).forEach(f => {
                 const r = new FileReader();
-                r.onload = e => {
-                    uploadedImages.push(e.target.result);
-                    const img = document.createElement('img'); img.src = e.target.result; img.className = 'photo-preview';
-                    document.getElementById('inputPhotoPreview').appendChild(img);
-                };
+                r.onload = e => { uploadedImages.push(e.target.result); const img = document.createElement('img'); img.src = e.target.result; img.className = 'photo-preview'; document.getElementById('inputPhotoPreview').appendChild(img); };
                 r.readAsDataURL(f);
             });
         }
@@ -479,123 +444,67 @@
     // --- SAVE / LOAD ---
     function saveProject() {
         const data = {
-            header: document.getElementById('hospitalHeader').value,
-            unit: document.getElementById('serviceUnit').value,
-            actName: document.getElementById('actName').value,
-            target: document.getElementById('target').value,
-            date: document.getElementById('date').value,
-            attPatients: document.getElementById('attPatients').value,
-            attCarers: document.getElementById('attCarers').value,
-            attVolunteers: document.getElementById('attVolunteers').value,
-            attOthers: document.getElementById('attOthers').value,
-            validQ: document.getElementById('validQ').value,
-            goals: [document.getElementById('goal1').value, document.getElementById('goal2').value, document.getElementById('goal3').value],
-            conclusion: document.getElementById('conclusionText').value,
-            includeSig: document.getElementById('includeSig').checked,
-            questions: [], textSections: [], finIncome: [], finExpense: [],
-            excelData: excelData, images: uploadedImages
+            header: document.getElementById('hospitalHeader').value, unit: document.getElementById('serviceUnit').value, actName: document.getElementById('actName').value, target: document.getElementById('target').value, date: document.getElementById('date').value,
+            attPatients: document.getElementById('attPatients').value, attCarers: document.getElementById('attCarers').value, attVolunteers: document.getElementById('attVolunteers').value, attOthers: document.getElementById('attOthers').value,
+            validQ: document.getElementById('validQ').value, goals: [document.getElementById('goal1').value, document.getElementById('goal2').value, document.getElementById('goal3').value],
+            conclusion: document.getElementById('conclusionText').value, includeSig: document.getElementById('includeSig').checked,
+            questions: [], textSections: [], finIncome: [], finExpense: [], excelData: excelData, images: uploadedImages
         };
-
         document.querySelectorAll('#questionsContainer .dynamic-card').forEach((card, idx) => {
             let manualData = [], customData = [];
             const source = card.querySelector('.question-source').value;
-            if(source === 'MANUAL_INPUT') {
-                const inputs = card.querySelectorAll(`#manual-inputs-${idx+1} .q-val`);
-                manualData = Array.from(inputs).map(i => i.value);
-            } else if (source === 'CUSTOM_MANUAL') {
-                const rows = card.querySelectorAll('.custom-option-row');
-                rows.forEach(r => customData.push({ label: r.querySelector('.cust-opt-label').value, val: r.querySelector('.cust-opt-val').value }));
-            }
+            if(source === 'MANUAL_INPUT') { const inputs = card.querySelectorAll(`#manual-inputs-${idx+1} .q-val`); manualData = Array.from(inputs).map(i => i.value); } 
+            else if (source === 'CUSTOM_MANUAL') { const rows = card.querySelectorAll('.custom-option-row'); rows.forEach(r => customData.push({ label: r.querySelector('.cust-opt-label').value, val: r.querySelector('.cust-opt-val').value })); }
             data.questions.push({ title: card.querySelector('.q-title').value, source: source, manualData: manualData, customData: customData });
         });
-
-        document.querySelectorAll('#textSectionsContainer .dynamic-card').forEach(card => {
-            data.textSections.push({ title: card.querySelector('.text-title').value, source: card.querySelector('.text-source').value, manualVal: card.querySelector('.text-manual-val').value });
-        });
+        document.querySelectorAll('#textSectionsContainer .dynamic-card').forEach(card => data.textSections.push({ title: card.querySelector('.text-title').value, source: card.querySelector('.text-source').value, manualVal: card.querySelector('.text-manual-val').value }));
         document.querySelectorAll('#incomeContainer .input-group').forEach(r => data.finIncome.push({ item: r.querySelector('.fin-item-inc').value, amount: r.querySelector('.fin-amount-inc').value }));
         document.querySelectorAll('#expenseContainer .input-group').forEach(r => data.finExpense.push({ item: r.querySelector('.fin-item-exp').value, amount: r.querySelector('.fin-amount-exp').value }));
-
         const blob = new Blob([JSON.stringify(data)], {type: "application/json"});
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `Project_${data.actName || 'Untitled'}.json`; a.click();
     }
 
     function loadProject(input) {
-        const file = input.files[0];
-        if(!file) return;
+        const file = input.files[0]; if(!file) return;
         const reader = new FileReader();
         reader.onload = function(e) {
             try {
                 const data = JSON.parse(e.target.result);
-                document.getElementById('hospitalHeader').value = data.header;
-                document.getElementById('serviceUnit').value = data.unit;
-                document.getElementById('actName').value = data.actName;
-                document.getElementById('target').value = data.target;
-                document.getElementById('date').value = data.date;
-                document.getElementById('attPatients').value = data.attPatients || "";
-                document.getElementById('attCarers').value = data.attCarers || "";
-                document.getElementById('attVolunteers').value = data.attVolunteers || "";
-                document.getElementById('attOthers').value = data.attOthers || "";
-                document.getElementById('validQ').value = data.validQ;
-                document.getElementById('goal1').value = data.goals[0];
-                document.getElementById('goal2').value = data.goals[1];
-                document.getElementById('goal3').value = data.goals[2];
-                document.getElementById('conclusionText').value = data.conclusion;
-                document.getElementById('includeSig').checked = data.includeSig !== false; 
-
+                document.getElementById('hospitalHeader').value = data.header; document.getElementById('serviceUnit').value = data.unit; document.getElementById('actName').value = data.actName; document.getElementById('target').value = data.target; document.getElementById('date').value = data.date;
+                document.getElementById('attPatients').value = data.attPatients||""; document.getElementById('attCarers').value = data.attCarers||""; document.getElementById('attVolunteers').value = data.attVolunteers||""; document.getElementById('attOthers').value = data.attOthers||"";
+                document.getElementById('validQ').value = data.validQ; document.getElementById('goal1').value = data.goals[0]; document.getElementById('goal2').value = data.goals[1]; document.getElementById('goal3').value = data.goals[2]; document.getElementById('conclusionText').value = data.conclusion;
+                document.getElementById('includeSig').checked = data.includeSig !== false;
                 if(data.excelData) { excelData = data.excelData; excelHeaders = Object.keys(excelData[0]).filter(k=>k!=='Timestamp'); }
                 
-                document.getElementById('questionsContainer').innerHTML = '';
-                questionCounter = 0;
-                data.questions.forEach(q => {
-                    addQuestionRow();
-                    const card = document.getElementById(`q-card-${questionCounter}`);
-                    card.querySelector('.q-title').value = q.title;
-                    const sel = card.querySelector('.question-source');
-                    sel.innerHTML = '<option value="">-- 選 Excel 欄位 --</option><option value="MANUAL_INPUT">✍️ 手動輸入 (5分制)</option><option value="CUSTOM_MANUAL">✍️ 手動輸入 (自訂選項)</option>';
+                document.getElementById('questionsContainer').innerHTML = ''; questionCounter = 0;
+                data.questions.forEach(q => { addQuestionRow(); const card = document.getElementById(`q-card-${questionCounter}`); card.querySelector('.q-title').value = q.title; const sel = card.querySelector('.question-source');
                     excelHeaders.forEach(h => { const opt = document.createElement('option'); opt.value = h; opt.text = h; sel.appendChild(opt); });
-                    sel.value = q.source;
-                    toggleManualInput(sel, questionCounter); 
-                    
-                    if(q.source === 'MANUAL_INPUT') {
-                        const inputs = card.querySelectorAll('.q-val');
-                        q.manualData.forEach((v, i) => inputs[i].value = v);
-                    } else if (q.source === 'CUSTOM_MANUAL' && q.customData) {
-                        q.customData.forEach(opt => addCustomOption(questionCounter, opt.label, opt.val));
-                    }
+                    sel.value = q.source; toggleManualInput(sel, questionCounter);
+                    if(q.source === 'MANUAL_INPUT') { const inputs = card.querySelectorAll('.q-val'); q.manualData.forEach((v, i) => inputs[i].value = v); }
+                    else if (q.source === 'CUSTOM_MANUAL' && q.customData) { q.customData.forEach(opt => addCustomOption(questionCounter, opt.label, opt.val)); }
+                });
+                
+                document.getElementById('textSectionsContainer').innerHTML = ''; textSectionCounter = 0;
+                data.textSections.forEach(t => { addTextSection(t.title); const card = document.querySelectorAll('#textSectionsContainer .dynamic-card')[textSectionCounter-1]; const sel = card.querySelector('.text-source');
+                    excelHeaders.forEach(h => { const opt = document.createElement('option'); opt.value = h; opt.text = h; sel.appendChild(opt); });
+                    sel.value = t.source; toggleTextManual(sel, card.querySelector('.manual-inputs').id); card.querySelector('.text-manual-val').value = t.manualVal;
                 });
 
-                document.getElementById('textSectionsContainer').innerHTML = '';
-                textSectionCounter = 0;
-                data.textSections.forEach(t => { addTextSection(t.title); 
-                    const cards = document.querySelectorAll('#textSectionsContainer .dynamic-card');
-                    const card = cards[cards.length-1];
-                    const sel = card.querySelector('.text-source');
-                    sel.innerHTML = '<option value="">-- 選 Excel 欄位 --</option><option value="MANUAL_INPUT">✍️ 手動輸入</option>';
-                    excelHeaders.forEach(h => { const opt = document.createElement('option'); opt.value = h; opt.text = h; sel.appendChild(opt); });
-                    sel.value = t.source;
-                    toggleTextManual(sel, card.querySelector('.manual-inputs').id);
-                    card.querySelector('.text-manual-val').value = t.manualVal;
-                });
-
-                document.getElementById('incomeContainer').innerHTML = '';
-                document.getElementById('expenseContainer').innerHTML = '';
+                document.getElementById('incomeContainer').innerHTML = ''; document.getElementById('expenseContainer').innerHTML = '';
                 data.finIncome.forEach(f => { addFinanceRow('income'); const r = document.querySelectorAll('#incomeContainer .input-group'); r[r.length-1].querySelector('input[type=text]').value = f.item; r[r.length-1].querySelector('input[type=number]').value = f.amount; });
                 data.finExpense.forEach(f => { addFinanceRow('expense'); const r = document.querySelectorAll('#expenseContainer .input-group'); r[r.length-1].querySelector('input[type=text]').value = f.item; r[r.length-1].querySelector('input[type=number]').value = f.amount; });
                 
-                uploadedImages = data.images || [];
-                const pDiv = document.getElementById('inputPhotoPreview'); pDiv.innerHTML = ''; uploadedImages.forEach(s => pDiv.innerHTML += `<img src="${s}" class="photo-preview">`);
-
+                uploadedImages = data.images || []; const pDiv = document.getElementById('inputPhotoPreview'); pDiv.innerHTML = ''; uploadedImages.forEach(s => pDiv.innerHTML += `<img src="${s}" class="photo-preview">`);
                 alert("✅ 專案讀取成功");
-            } catch(e) { console.error(e); alert("讀取錯誤"); }
+            } catch(e) { alert("讀取錯誤"); }
         };
         reader.readAsText(file);
     }
 
-    // --- GENERATE REPORT (V16.0) ---
+    // --- GENERATE (V17 Sorted) ---
     function generateReport() {
         const includeSig = document.getElementById('includeSig').checked;
         document.getElementById('signatureSection').style.display = includeSig ? 'block' : 'none';
-
         document.getElementById('outHeader').innerText = document.getElementById('hospitalHeader').value;
         document.getElementById('outUnit').innerText = document.getElementById('serviceUnit').value;
         document.getElementById('outTitle').innerText = document.getElementById('actName').value + " - 活動報告";
@@ -614,103 +523,73 @@
         chartsArea.innerHTML = '';
         const qCards = document.querySelectorAll('#questionsContainer .dynamic-card');
 
+        // V17: Global Sorter
+        const sortMap = {
+            "非常同意": 1, "十分同意": 1, "Strongly Agree": 1, "5": 1,
+            "同意": 2, "Agree": 2, "4": 2,
+            "一般": 3, "Neutral": 3, "3": 3,
+            "不同意": 4, "Disagree": 4, "2": 4,
+            "非常不同意": 5, "十分不同意": 5, "Strongly Disagree": 5, "1": 5
+        };
+        const sortFunc = (a, b) => {
+            const valA = sortMap[a.name] || 99;
+            const valB = sortMap[b.name] || 99;
+            return valA - valB;
+        };
+
         qCards.forEach((card, index) => {
             const title = card.querySelector('.q-title').value;
             const source = card.querySelector('.question-source').value;
-            
             const stdColors = ['#198754', '#20c997', '#ffc107', '#fd7e14', '#dc3545']; 
             const dynColors = ['#0d6efd', '#6610f2', '#6f42c1', '#d63384', '#dc3545', '#fd7e14', '#ffc107', '#198754', '#20c997', '#0dcaf0'];
 
-            let chartDataPoints = [];
-            let tableDataPoints = []; // V16 Separate Array for Table (to keep 0s)
+            let chartDataPoints = [], tableDataPoints = [];
             let total = 0;
-
-            // Helper to get percentage
-            const getPct = (val) => total > 0 ? ((val / total) * 100).toFixed(1) : "0.0";
+            const getPct = (v) => total > 0 ? ((v/total)*100).toFixed(1) : "0.0";
 
             if (source === 'MANUAL_INPUT') {
                 const inputs = card.querySelectorAll(`#manual-inputs-${index+1} .q-val`);
                 const vals = Array.from(inputs).map(i => parseInt(i.value) || 0);
                 const labels = ['非常同意', '同意', '一般', '不同意', '非常不同意'];
-                
-                // Calculate Total First
                 total = vals.reduce((a, b) => a + b, 0);
-
-                // Build Data
                 vals.forEach((v, i) => {
-                    // For Table: Keep everything (V16 Requirement)
                     tableDataPoints.push({ name: labels[i], y: v, pct: getPct(v) });
-                    // For Chart: Only > 0
                     if(v > 0) chartDataPoints.push({ name: labels[i], y: v, color: stdColors[i] });
                 });
-            
-            } else if (source === 'CUSTOM_MANUAL') {
-                const rows = card.querySelectorAll('.custom-option-row');
-                let cIndex = 0;
-                rows.forEach(r => {
-                    const label = r.querySelector('.cust-opt-label').value;
-                    const val = parseInt(r.querySelector('.cust-opt-val').value) || 0;
-                    if (label) {
-                        let color = dynColors[cIndex % dynColors.length];
-                        if(label.includes('非常同意')) color = stdColors[0];
-                        else if(label.includes('同意')) color = stdColors[1];
-                        else if(label.includes('一般')) color = stdColors[2];
-                        else if(label.includes('不同意')) color = stdColors[3];
-                        else if(label.includes('非常不同意')) color = stdColors[4];
-                        
-                        // For Custom, we collect first, calc total later
-                        tableDataPoints.push({ name: label, y: val, color: color });
-                        total += val;
-                        cIndex++;
-                    }
-                });
-                // Update percentages after total known
-                tableDataPoints.forEach(pt => pt.pct = getPct(pt.y));
-                // Chart gets filtered
-                chartDataPoints = tableDataPoints.filter(pt => pt.y > 0);
-
-            } else if (source && excelData.length > 0) {
+            } else {
+                // Auto / Custom
                 const counts = {};
-                excelData.forEach(row => { let val = String(row[source] || "").trim(); if(val) { counts[val] = (counts[val] || 0) + 1; total++; } });
-                const keys = Object.keys(counts);
-                const isStandard = keys.some(k => k.includes("同意") || k.includes("Agree") || k === "5");
-
-                if (isStandard) {
-                    const stdMap = [
-                        { keys: ["非常同意", "十分同意", "Strongly Agree", "5"], label: "非常同意", color: stdColors[0] },
-                        { keys: ["同意", "Agree", "4"], label: "同意", color: stdColors[1] },
-                        { keys: ["一般", "Neutral", "3"], label: "一般", color: stdColors[2] },
-                        { keys: ["不同意", "Disagree", "2"], label: "不同意", color: stdColors[3] },
-                        { keys: ["非常不同意", "十分不同意", "Strongly Disagree", "1"], label: "非常不同意", color: stdColors[4] }
-                    ];
-                    
-                    // V16: Standard Mode - Force 5 rows
-                    stdMap.forEach(map => {
-                        let count = 0;
-                        keys.forEach(k => { if(map.keys.some(mk => k.includes(mk))) count += counts[k]; });
-                        // Table: Always add
-                        tableDataPoints.push({ name: map.label, y: count, pct: getPct(count) });
-                        // Chart: Only add if > 0
-                        if(count > 0) chartDataPoints.push({ name: map.label, y: count, color: map.color });
-                    });
-                } else {
-                    let cIndex = 0;
-                    for (const [key, val] of Object.entries(counts)) {
-                        tableDataPoints.push({ name: key, y: val, color: dynColors[cIndex % dynColors.length] });
-                        cIndex++;
-                    }
-                    tableDataPoints.sort((a, b) => b.y - a.y);
-                    tableDataPoints.forEach(pt => pt.pct = getPct(pt.y));
-                    chartDataPoints = tableDataPoints.filter(pt => pt.y > 0);
+                if(source === 'CUSTOM_MANUAL') {
+                    card.querySelectorAll('.custom-option-row').forEach(r => { const l=r.querySelector('.cust-opt-label').value; const v=parseInt(r.querySelector('.cust-opt-val').value)||0; if(l) counts[l] = v; });
+                } else if (source && excelData.length) {
+                    excelData.forEach(row => { let v=String(row[source]||"").trim(); if(v) counts[v]=(counts[v]||0)+1; });
                 }
-            } else return; 
+                
+                for(const [k, v] of Object.entries(counts)) { total += v; }
+                let cIndex = 0;
+                for(const [k, v] of Object.entries(counts)) {
+                    let color = dynColors[cIndex % dynColors.length];
+                    if(k.includes('非常同意')) color = stdColors[0];
+                    else if(k.includes('同意')) color = stdColors[1];
+                    else if(k.includes('一般')) color = stdColors[2];
+                    else if(k.includes('不同意')) color = stdColors[3];
+                    else if(k.includes('非常不同意')) color = stdColors[4];
+                    
+                    const pt = { name: k, y: v, color: color, pct: getPct(v) };
+                    tableDataPoints.push(pt);
+                    if(v > 0) chartDataPoints.push(pt);
+                    cIndex++;
+                }
+            }
+
+            // Apply V17 Sort
+            tableDataPoints.sort(sortFunc);
+            chartDataPoints.sort(sortFunc);
 
             // Render
             const chartId = `chart-container-${index}`;
             let tableHtml = `<table class="stats-table"><thead><tr><th>選項</th><th>人數</th><th>百分比</th></tr></thead><tbody>`;
-            tableDataPoints.forEach(pt => {
-                tableHtml += `<tr><td>${pt.name}</td><td>${pt.y}</td><td>${pt.pct}%</td></tr>`;
-            });
+            tableDataPoints.forEach(pt => tableHtml += `<tr><td>${pt.name}</td><td>${pt.y}</td><td>${pt.pct}%</td></tr>`);
             tableHtml += `</tbody></table>`;
 
             const wrapper = document.createElement('div');
@@ -742,14 +621,9 @@
     }
 
     function printToSave() {
-        // V16 Fix: Add delay to prevent blank PDF
         document.getElementById('reportOutput').style.display = 'block';
-        setTimeout(() => {
-            generateReport(); // Regenerate to ensure fresh DOM
-            setTimeout(() => {
-                window.print();
-            }, 500); // 500ms Buffer
-        }, 100);
+        // V16 Fix: 500ms Delay ensures charts render before print dialog
+        setTimeout(() => { generateReport(); setTimeout(() => window.print(), 500); }, 100);
     }
 
     function renderTextAndFinance() {
